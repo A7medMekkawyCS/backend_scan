@@ -10,13 +10,16 @@ router.post('/register', async (req, res) => {
   try {
     const { fullName, email, password, role, mobilenumber, birthDate } = req.body;
 
-    if (!fullName || !email || !password || !role  || !mobilenumber || !birthDate) {
+    if (!fullName || !email || !password || !role || !mobilenumber || !birthDate) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
     if (await User.findOne({ email })) {
       return res.status(400).json({ message: 'Email already exists' });
     }
+
+    const lastUser = await User.findOne().sort({ userId: -1 });
+    const userId = lastUser ? lastUser.userId + 1 : 1;
 
     let doctorUserId, patientUserId;
     if (role === 'doctor') {
@@ -32,13 +35,14 @@ router.post('/register', async (req, res) => {
       role,
       mobilenumber,
       birthDate,
+      userId,
       doctorUserId,
       patientUserId
     });
 
     res.status(201).json({
       message: 'User registered',
-      token: generateToken(user._id, user.role),
+      token: generateToken(user._id, user.role, user.userId),
       user: {
         id: user._id,
         fullName: user.fullName,
@@ -65,7 +69,7 @@ router.post('/login', async (req, res) => {
 
     res.json({
       message: 'Login successful',
-      token: generateToken(user._id, user.role),
+      token: generateToken(user._id, user.role, user.userId),
       user: {
         id: user._id,
         fullName: user.fullName,

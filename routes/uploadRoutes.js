@@ -6,14 +6,15 @@ const axios = require('axios');
 const FormData = require('form-data');
 const Diagnosis = require('../models/Diagnosis');
 const { authenticateUser } = require('../middleware/authMiddleware');
+
 const router = express.Router();
 
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
     try {
       const userId = req.user.userId; 
-      const userDir = path.join('users', 'patients', userId.toString());
-      await fs.mkdir(userDir, { recursive: true });
+      const userDir = path.join(__dirname, 'users', 'patients', userId.toString());
+      await fs.mkdir(userDir, { recursive: true }); 
       cb(null, userDir);
     } catch (err) {
       cb(err);
@@ -26,9 +27,9 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }
+  limits: { fileSize: 5 * 1024 * 1024 } 
 });
 
 router.post('/diagnosis', authenticateUser, upload.single('image'), async (req, res) => {
@@ -41,7 +42,7 @@ router.post('/diagnosis', authenticateUser, upload.single('image'), async (req, 
     const imagePath = path.join('users', 'patients', userId.toString(), req.file.filename);
 
     const formData = new FormData();
-    formData.append('image', await fs.readFile(imagePath), {
+    formData.append('image', await fs.readFile(req.file.path), {
       filename: req.file.filename,
       contentType: req.file.mimetype
     });
@@ -51,10 +52,10 @@ router.post('/diagnosis', authenticateUser, upload.single('image'), async (req, 
       timeout: 30000
     });
 
+
     const diagnosis = new Diagnosis({
-      userId: req.user._id,
-      userNumericId: req.user.userId,
-      imageUrl: imagePath,
+      userId: req.user._id, 
+      imageUrl: `${process.env.BASE_URL}/${imagePath.replace(/\\/g, '/')}`, 
       result: aiResponse.data.result
     });
 
@@ -62,10 +63,14 @@ router.post('/diagnosis', authenticateUser, upload.single('image'), async (req, 
 
     res.status(201).json({
       success: true,
-      message: 'File uploaded successfully',
+      message: 'File uploaded and diagnosed successfully',
       diagnosis
     });
+
   } catch (err) {
+    if (req.file) {
+      await fs.unlink(req.file.path).catch(console.error);
+    }
     console.error('Upload error:', err);
     res.status(500).json({ success: false, message: 'Upload failed', error: err.message });
   }

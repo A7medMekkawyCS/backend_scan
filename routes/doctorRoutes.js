@@ -6,7 +6,6 @@ const Report = require("../models/Report");
 
 const router = express.Router();
 
-// عرض قائمة المرضى الذين لديهم تشخيصات
 router.get("/patients", authenticateUser, authorizeRole(["doctor"]), async (req, res) => {
   try {
     const diagnoses = await Diagnosis.find().populate("userId", "fullName email");
@@ -29,7 +28,6 @@ router.get("/patients", authenticateUser, authorizeRole(["doctor"]), async (req,
   }
 });
 
-// إنشاء تقرير للمريض بعد التشخيص
 router.post("/report/:diagnosisId", authenticateUser, authorizeRole(["doctor"]), async (req, res) => {
   try {
     const { diagnosisId } = req.params;
@@ -54,8 +52,8 @@ router.post("/report/:diagnosisId", authenticateUser, authorizeRole(["doctor"]),
         id: newReport._id,
         reportText: newReport.reportText,
         createdAt: newReport.createdAt,
-        doctorUserId: req.user.userId,  // إضافة doctorUserId
-        patientUserId: diagnosis.userId._id  // إضافة patientUserId
+        doctorUserId: req.user.userId,  
+        patientUserId: diagnosis.userId._id  
       }
     });
   } catch (error) {
@@ -63,7 +61,6 @@ router.post("/report/:diagnosisId", authenticateUser, authorizeRole(["doctor"]),
   }
 });
 
-// عرض تقرير مريض بناءً على معرف التشخيص
 router.get("/report/:diagnosisId", authenticateUser, authorizeRole(["doctor", "patient"]), async (req, res) => {
   try {
     const { diagnosisId } = req.params;

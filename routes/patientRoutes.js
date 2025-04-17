@@ -5,9 +5,6 @@ const Report = require('../models/Report');
 const Diagnosis = require('../models/Diagnosis');
 const router = express.Router();
 
-// @route   GET /api/patient/reports
-// @desc    Get all medical reports for logged-in patient
-// @access  Private (Patient only)
 router.get('/reports',
   authenticateUser,
   authorizeRole(['patient']),
@@ -47,9 +44,6 @@ router.get('/reports',
   }
 );
 
-// @route   GET /api/patient/reports/:id
-// @desc    Get single medical report
-// @access  Private (Patient only)
 router.get('/reports/:id',
   authenticateUser,
   authorizeRole(['patient']),
@@ -96,9 +90,6 @@ router.get('/reports/:id',
   }
 );
 
-// @route   GET /api/patient/diagnoses
-// @desc    Get patient's diagnosis history
-// @access  Private (Patient only)
 router.get('/diagnoses',
   authenticateUser,
   authorizeRole(['patient']),
