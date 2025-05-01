@@ -1,16 +1,17 @@
 const express = require('express');
-const { authenticateUser } = require('../middleware/authMiddleware');
 const { authorizeRole } = require('../middleware/authorizeRole');
 const Report = require('../models/Report');
 const Diagnosis = require('../models/Diagnosis');
 const router = express.Router();
 
+// الحصول على التقارير للمريض
 router.get('/reports',
-  authenticateUser,
+  // قم بحذف authenticateUser لتمكين الوصول دون توثيق
+  // إضافة صلاحية للدور "مريض" بدون تحقق التوكن
   authorizeRole(['patient']),
   async (req, res) => {
     try {
-      const reports = await Report.find({ patientId: req.user._id })
+      const reports = await Report.find({ patientId: req.body.userId })  // تم تمرير userId عبر body
         .populate('doctorId', 'fullName specialization')
         .populate('diagnosisId', 'imageUrl result createdAt')
         .sort({ createdAt: -1 });
@@ -44,14 +45,15 @@ router.get('/reports',
   }
 );
 
+// الحصول على تقرير واحد
 router.get('/reports/:id',
-  authenticateUser,
+  // حذف authenticateUser
   authorizeRole(['patient']),
   async (req, res) => {
     try {
       const report = await Report.findOne({
         _id: req.params.id,
-        patientId: req.user._id
+        patientId: req.body.userId  // استخدم userId من body
       })
         .populate('doctorId', 'fullName profileImage')
         .populate('diagnosisId');
@@ -90,12 +92,13 @@ router.get('/reports/:id',
   }
 );
 
+// الحصول على جميع التشخيصات للمريض
 router.get('/diagnoses',
-  authenticateUser,
+  // حذف authenticateUser
   authorizeRole(['patient']),
   async (req, res) => {
     try {
-      const diagnoses = await Diagnosis.find({ userId: req.user._id })
+      const diagnoses = await Diagnosis.find({ userId: req.body.userId })  // استخدم userId من body
         .sort({ createdAt: -1 })
         .select('imageUrl result createdAt');
 

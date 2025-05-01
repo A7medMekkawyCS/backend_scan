@@ -1,33 +1,37 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
-const { generateToken } = require('../utils/authUtils');
-const { generateDoctorId, generatePatientId } = require('../utils/authUtils');
+const { generateToken, generateDoctorId, generatePatientId } = require('../utils/authUtils');
 
 const router = express.Router();
 
+// تسجيل المستخدم
 router.post('/register', async (req, res) => {
   try {
     const { fullName, email, password, role, mobilenumber, birthDate } = req.body;
 
+    // التأكد من وجود كافة الحقول المطلوبة
     if (!fullName || !email || !password || !role || !mobilenumber || !birthDate) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    if (await User.findOne({ email })) {
+    // التحقق من وجود مستخدم آخر بنفس البريد الإلكتروني
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
       return res.status(400).json({ message: 'Email already exists' });
     }
 
-    const lastUser = await User.findOne().sort({ userId: -1 });
-    const userId = lastUser ? lastUser.userId + 1 : 1;
+    // توليد معرف الطبيب أو المريض بناءً على الدور
+    let doctorUserId = null;
+    let patientUserId = null;
 
-    let doctorUserId, patientUserId;
     if (role === 'doctor') {
-      doctorUserId = generateDoctorId();
+      doctorUserId = generateDoctorId(); // توليد معرف الطبيب
     } else if (role === 'patient') {
-      patientUserId = generatePatientId();
+      patientUserId = generatePatientId(); // توليد معرف المريض
     }
 
+    // إنشاء المستخدم مع التأكد من أنه سيتم تخزين معرف الطبيب أو المريض بشكل صحيح
     const user = await User.create({
       fullName,
       email,
@@ -35,14 +39,14 @@ router.post('/register', async (req, res) => {
       role,
       mobilenumber,
       birthDate,
-      userId,
-      doctorUserId,
-      patientUserId
+      doctorUserId: role === 'doctor' ? doctorUserId : undefined,
+      patientUserId: role === 'patient' ? patientUserId : undefined
     });
 
+    // استجابة بتأكيد التسجيل وتوليد التوكن
     res.status(201).json({
-      message: 'User registered',
-      token: generateToken(user._id, user.role, user.userId),
+      message: 'User registered successfully',
+      token: generateToken(user._id),  // توليد التوكن
       user: {
         id: user._id,
         fullName: user.fullName,
@@ -58,23 +62,24 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// تسجيل الدخول
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email }).select('+password');
 
+    const user = await User.findOne({ email }).select('+password');
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    res.json({
+    res.status(200).json({
       message: 'Login successful',
-      token: generateToken(user._id, user.role, user.userId),
+      token: generateToken(user._id),  // توليد التوكن
       user: {
         id: user._id,
         fullName: user.fullName,
-        role: user.role,
         email: user.email,
+        role: user.role,
         userId: user.userId,
         doctorUserId: user.doctorUserId,
         patientUserId: user.patientUserId

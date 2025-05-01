@@ -1,12 +1,12 @@
 const express = require("express");
-const { authenticateUser } = require("../middleware/authMiddleware");
 const { authorizeRole } = require("../middleware/authorizeRole");
 const Diagnosis = require("../models/Diagnosis");
 const Report = require("../models/Report");
 
 const router = express.Router();
 
-router.get("/patients", authenticateUser, authorizeRole(["doctor"]), async (req, res) => {
+// الحصول على جميع التشخيصات للمريض (للطبيب فقط)
+router.get("/patients", authorizeRole(["doctor"]), async (req, res) => {
   try {
     const diagnoses = await Diagnosis.find().populate("userId", "fullName email");
 
@@ -28,18 +28,20 @@ router.get("/patients", authenticateUser, authorizeRole(["doctor"]), async (req,
   }
 });
 
-router.post("/report/:diagnosisId", authenticateUser, authorizeRole(["doctor"]), async (req, res) => {
+// إضافة تقرير جديد (للطبيب فقط)
+router.post("/report/:diagnosisId", authorizeRole(["doctor"]), async (req, res) => {
   try {
     const { diagnosisId } = req.params;
-    const { reportText } = req.body;
+    const { reportText, doctorUserId } = req.body;  // تم إضافة doctorUserId من الـ body
 
+    // تحقق من التشخيص
     const diagnosis = await Diagnosis.findById(diagnosisId);
     if (!diagnosis) {
       return res.status(404).json({ message: "Diagnosis not found" });
     }
 
     const newReport = new Report({
-      doctorId: req.user.userId,
+      doctorId: doctorUserId,  // استخدام doctorUserId من الـ body
       patientId: diagnosis.userId,
       diagnosisId,
       reportText,
@@ -52,8 +54,8 @@ router.post("/report/:diagnosisId", authenticateUser, authorizeRole(["doctor"]),
         id: newReport._id,
         reportText: newReport.reportText,
         createdAt: newReport.createdAt,
-        doctorUserId: req.user.userId,  
-        patientUserId: diagnosis.userId._id  
+        doctorUserId,  // إضافة doctorUserId
+        patientUserId: diagnosis.userId._id  // إضافة patientUserId
       }
     });
   } catch (error) {
@@ -61,16 +63,24 @@ router.post("/report/:diagnosisId", authenticateUser, authorizeRole(["doctor"]),
   }
 });
 
-router.get("/report/:diagnosisId", authenticateUser, authorizeRole(["doctor", "patient"]), async (req, res) => {
+// الحصول على تقرير بناءً على التشخيص (للطبيب أو المريض)
+router.get("/report/:diagnosisId", authorizeRole(["doctor", "patient"]), async (req, res) => {
   try {
     const { diagnosisId } = req.params;
+    const { userId } = req.body;  // الحصول على userId من الـ body
 
+    // تحقق من وجود التقرير
     const report = await Report.findOne({ diagnosisId })
       .populate("doctorId", "fullName email")
       .populate("patientId", "fullName email");
 
     if (!report) {
       return res.status(404).json({ message: "Report not found" });
+    }
+
+    // تأكد من أن المستخدم هو الطبيب أو المريض المرتبطين
+    if (report.patientId._id.toString() !== userId && report.doctorId._id.toString() !== userId) {
+      return res.status(403).json({ message: "Forbidden: You are not authorized to access this report" });
     }
 
     res.json({
