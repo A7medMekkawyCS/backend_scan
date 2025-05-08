@@ -5,33 +5,28 @@ const { generateToken, generateDoctorId, generatePatientId } = require('../utils
 
 const router = express.Router();
 
-// تسجيل المستخدم
 router.post('/register', async (req, res) => {
   try {
     const { fullName, email, password, role, mobilenumber, birthDate } = req.body;
 
-    // التأكد من وجود كافة الحقول المطلوبة
     if (!fullName || !email || !password || !role || !mobilenumber || !birthDate) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    // التحقق من وجود مستخدم آخر بنفس البريد الإلكتروني
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'Email already exists' });
     }
 
-    // توليد معرف الطبيب أو المريض بناءً على الدور
     let doctorUserId = null;
     let patientUserId = null;
 
     if (role === 'doctor') {
-      doctorUserId = generateDoctorId(); // توليد معرف الطبيب
+      doctorUserId = generateDoctorId(); 
     } else if (role === 'patient') {
-      patientUserId = generatePatientId(); // توليد معرف المريض
+      patientUserId = generatePatientId();
     }
 
-    // إنشاء المستخدم مع التأكد من أنه سيتم تخزين معرف الطبيب أو المريض بشكل صحيح
     const user = await User.create({
       fullName,
       email,
@@ -43,10 +38,9 @@ router.post('/register', async (req, res) => {
       patientUserId: role === 'patient' ? patientUserId : undefined
     });
 
-    // استجابة بتأكيد التسجيل وتوليد التوكن
     res.status(201).json({
       message: 'User registered successfully',
-      token: generateToken(user._id),  // توليد التوكن
+      token: generateToken(user._id),  
       user: {
         id: user._id,
         fullName: user.fullName,
@@ -62,7 +56,6 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// تسجيل الدخول
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -74,7 +67,7 @@ router.post('/login', async (req, res) => {
 
     res.status(200).json({
       message: 'Login successful',
-      token: generateToken(user._id),  // توليد التوكن
+      token: generateToken(user._id),  
       user: {
         id: user._id,
         fullName: user.fullName,

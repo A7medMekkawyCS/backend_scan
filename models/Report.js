@@ -1,4 +1,4 @@
-const mongoose = require('mongoose'); // <-- هذا السطر ضروري
+const mongoose = require('mongoose'); 
 
 const reportSchema = new mongoose.Schema({
   doctorId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
