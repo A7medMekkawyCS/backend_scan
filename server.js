@@ -12,6 +12,7 @@ const patientRoutes = require('./routes/patientRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const viewAppointments = require('./routes/patient/bookAppointment');
 const sendDiagnosisRoute = require('./routes/patient/sendDiagnosis');
+const paymentRoutes = require('./routes/patient/paymentRoutes');
 
 
 dotenv.config();
@@ -31,6 +32,7 @@ app.use('/api/patient', patientRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/patient/appointments', viewAppointments);
 app.use('/api/patient/send-diagnosis', sendDiagnosisRoute);
+app.use('/api/patient/payments', paymentRoutes); 
 
 async function createAdmin() {
   try {
