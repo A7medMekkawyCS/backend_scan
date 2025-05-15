@@ -32,16 +32,15 @@ router.get("/patients", authorizeRole(["doctor"]), async (req, res) => {
 router.post("/report/:diagnosisId", authorizeRole(["doctor"]), async (req, res) => {
   try {
     const { diagnosisId } = req.params;
-    const { reportText, doctorUserId } = req.body;  // تم إضافة doctorUserId من الـ body
+    const { reportText, doctorUserId } = req.body;  
 
-    // تحقق من التشخيص
     const diagnosis = await Diagnosis.findById(diagnosisId);
     if (!diagnosis) {
       return res.status(404).json({ message: "Diagnosis not found" });
     }
 
     const newReport = new Report({
-      doctorId: doctorUserId,  // استخدام doctorUserId من الـ body
+      doctorId: doctorUserId,  
       patientId: diagnosis.userId,
       diagnosisId,
       reportText,
@@ -54,8 +53,8 @@ router.post("/report/:diagnosisId", authorizeRole(["doctor"]), async (req, res) 
         id: newReport._id,
         reportText: newReport.reportText,
         createdAt: newReport.createdAt,
-        doctorUserId,  // إضافة doctorUserId
-        patientUserId: diagnosis.userId._id  // إضافة patientUserId
+        doctorUserId,  
+        patientUserId: diagnosis.userId._id  
       }
     });
   } catch (error) {
@@ -63,13 +62,11 @@ router.post("/report/:diagnosisId", authorizeRole(["doctor"]), async (req, res) 
   }
 });
 
-// الحصول على تقرير بناءً على التشخيص (للطبيب أو المريض)
 router.get("/report/:diagnosisId", authorizeRole(["doctor", "patient"]), async (req, res) => {
   try {
     const { diagnosisId } = req.params;
-    const { userId } = req.body;  // الحصول على userId من الـ body
+    const { userId } = req.body;  
 
-    // تحقق من وجود التقرير
     const report = await Report.findOne({ diagnosisId })
       .populate("doctorId", "fullName email")
       .populate("patientId", "fullName email");
@@ -78,7 +75,6 @@ router.get("/report/:diagnosisId", authorizeRole(["doctor", "patient"]), async (
       return res.status(404).json({ message: "Report not found" });
     }
 
-    // تأكد من أن المستخدم هو الطبيب أو المريض المرتبطين
     if (report.patientId._id.toString() !== userId && report.doctorId._id.toString() !== userId) {
       return res.status(403).json({ message: "Forbidden: You are not authorized to access this report" });
     }

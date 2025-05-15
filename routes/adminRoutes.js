@@ -4,7 +4,6 @@ const { authenticateUser } = require('../middleware/authMiddleware');
 const { authorizeRole } = require('../middleware/authorizeRole');
 const router = express.Router();
 
-// الموافقة على طبيب
 router.post('/approve-doctor/:userId', authenticateUser, authorizeRole(['admin']), async (req, res) => {
   try {
     const { userId } = req.params;
@@ -18,7 +17,6 @@ router.post('/approve-doctor/:userId', authenticateUser, authorizeRole(['admin']
       return res.status(400).json({ message: 'User is not a doctor' });
     }
 
-    // التحقق من وجود الترخيص الطبي والتخصص
     if (!user.medicalLicense) {
       return res.status(400).json({ message: 'Medical license is required' });
     }
@@ -27,7 +25,6 @@ router.post('/approve-doctor/:userId', authenticateUser, authorizeRole(['admin']
       return res.status(400).json({ message: 'Specialization is required' });
     }
 
-    // تحديث حالة الموافقة
     user.verifiedAsDoctor = true;
     await user.save();
 
@@ -37,7 +34,6 @@ router.post('/approve-doctor/:userId', authenticateUser, authorizeRole(['admin']
   }
 });
 
-// حذف مستخدم
 router.delete('/delete-user/:userId', authenticateUser, authorizeRole(['admin']), async (req, res) => {
   try {
     const { userId } = req.params;
@@ -47,7 +43,6 @@ router.delete('/delete-user/:userId', authenticateUser, authorizeRole(['admin'])
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // حذف المستخدم من قاعدة البيانات
     await user.remove();
 
     res.status(200).json({ message: 'User deleted successfully' });
@@ -56,7 +51,6 @@ router.delete('/delete-user/:userId', authenticateUser, authorizeRole(['admin'])
   }
 });
 
-// تحديث بيانات الطبيب
 router.put('/update-doctor/:userId', authenticateUser, authorizeRole(['admin']), async (req, res) => {
   try {
     const { userId } = req.params;
@@ -67,7 +61,6 @@ router.put('/update-doctor/:userId', authenticateUser, authorizeRole(['admin']),
       return res.status(404).json({ message: 'Doctor not found or not a doctor' });
     }
 
-    // تحديث التخصص والترخيص الطبي
     if (specialization) user.specialization = specialization;
     if (medicalLicense) user.medicalLicense = medicalLicense;
 

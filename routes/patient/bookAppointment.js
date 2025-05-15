@@ -5,7 +5,6 @@ const { authorizeRole } = require('../../middleware/authorizeRole');
 
 const router = express.Router();
 
-// حجز موعد مع الطبيب
 router.post(
   '/',
   authenticateUser,
@@ -26,7 +25,7 @@ router.post(
         doctorId,
         date,
         time,
-        status: 'pending', // أو confirmed/manual حسب اللوجيك اللي تحبه
+        status: 'pending', 
       });
 
       await appointment.save();

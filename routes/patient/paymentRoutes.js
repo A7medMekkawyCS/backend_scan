@@ -1,15 +1,14 @@
 const express = require('express');
 const Payment = require('../../models/Payment');
 const Appointment = require('../../models/Appointment');
-const { authenticateUser } = require('../../middleware/authMiddleware'); // ✅
+const { authenticateUser } = require('../../middleware/authMiddleware'); 
 const { authorizeRole } = require('../../middleware/authorizeRole');
 
 const router = express.Router();
 
-// 🧾 إنشاء عملية الدفع
 router.post('/pay',
-  authenticateUser,             // ✅ أولاً: فك التوكن
-  authorizeRole(['patient']),   // ✅ ثانياً: تأكد من الدور
+  authenticateUser,             
+  authorizeRole(['patient']),  
   async (req, res) => {
     const { appointmentId, amount, paymentMethod } = req.body;
 
@@ -53,10 +52,9 @@ router.post('/pay',
   }
 );
 
-// 📦 التحقق من حالة الدفع
 router.get('/payment-status/:paymentId',
-  authenticateUser,             // ✅
-  authorizeRole(['patient']),   // ✅
+  authenticateUser,             
+  authorizeRole(['patient']),   
   async (req, res) => {
     const { paymentId } = req.params;
 
@@ -84,10 +82,9 @@ router.get('/payment-status/:paymentId',
   }
 );
 
-// 🔄 تحديث حالة الدفع (ممكن تيجي من جهة الدفع نفسها)
 router.post('/update-payment-status',
-  authenticateUser,             // ✅ ممكن تضيفه لو التحديث بييجي من جهة مصرح لها
-  authorizeRole(['patient']),   // ✅ أو تشيله لو جهة خارجية
+  authenticateUser,             
+  authorizeRole(['patient']),  
   async (req, res) => {
     const { paymentId, status } = req.body;
 
@@ -126,3 +123,4 @@ router.post('/update-payment-status',
 );
 
 module.exports = router;
+
