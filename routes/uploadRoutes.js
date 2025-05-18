@@ -10,7 +10,6 @@ const { authorizeRole } = require('../middleware/authorizeRole');
 
 const router = express.Router();
 
-// Multer storage configuration
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
     try {
@@ -36,7 +35,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 } // الحد الأقصى لحجم الصورة 5 ميجابايت
+  limits: { fileSize: 5 * 1024 * 1024 } 
 });
 
 router.post('/', authenticateUser, authorizeRole(['patient']), upload.single('image'), async (req, res) => {
@@ -48,18 +47,14 @@ router.post('/', authenticateUser, authorizeRole(['patient']), upload.single('im
     const patientUserId = req.user.patientUserId;
     const imagePath = path.join('users', 'patients', patientUserId.toString(), req.file.filename);
 
-    // بناء رابط الصورة
     const imageUrl = `${process.env.BASE_URL}/${imagePath.replace(/\\/g, '/')}`;
 
-    // إرسال الصورة إلى سيرفر Flask لتحليلها
     const predictionResponse = await axios.post(`${process.env.FLASK_SERVER_URL}/predict`, {
       imageUrl: imageUrl
     });
 
-    // استخراج نتيجة التنبؤ
     const { confidence, predicted_label } = predictionResponse.data;
 
-    // تخزين التشخيص في قاعدة البيانات
     const diagnosis = new Diagnosis({
       userId: req.user._id,
       imageUrl: imageUrl,

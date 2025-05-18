@@ -6,7 +6,6 @@ const { authorizeRole } = require('../../middleware/authorizeRole');
 
 const router = express.Router();
 
-// إرسال نتيجة التشخيص لطبيب محدد
 router.post(
   '/',
   authenticateUser,
