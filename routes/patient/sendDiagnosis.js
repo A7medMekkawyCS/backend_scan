@@ -7,6 +7,9 @@ const { authorizeRole } = require('../../middleware/authorizeRole');
 
 const router = express.Router();
 
+// Base URL for Railway deployment
+const BASE_URL = 'https://backendscan-production.up.railway.app';
+
 // Send diagnosis to doctor
 router.post(
   '/',
@@ -40,7 +43,11 @@ router.post(
       res.status(201).json({
         success: true,
         message: 'Diagnosis sent to doctor successfully',
-        data: message,
+        data: {
+          ...message.toObject(),
+          reportUrl: `${BASE_URL}/api/patient/reports/${message._id}`,
+          diagnosisUrl: `${BASE_URL}/api/patient/diagnosis/${diagnosisId}`
+        }
       });
     } catch (err) {
       console.error('Error sending diagnosis:', err);
@@ -72,9 +79,10 @@ router.get('/reports', authenticateUser, authorizeRole(['patient']), async (req,
         },
         reportText: report.reportText,
         doctorNotes: report.doctorNotes,
-        pdfUrl: report.pdfUrl,
+        pdfUrl: report.pdfUrl ? `${BASE_URL}${report.pdfUrl}` : null,
         status: report.status,
-        createdAt: report.createdAt
+        createdAt: report.createdAt,
+        reportUrl: `${BASE_URL}/api/patient/reports/${report._id}`
       }))
     });
   } catch (err) {
@@ -111,9 +119,10 @@ router.get('/reports/:reportId', authenticateUser, authorizeRole(['patient']), a
         },
         reportText: report.reportText,
         doctorNotes: report.doctorNotes,
-        pdfUrl: report.pdfUrl,
+        pdfUrl: report.pdfUrl ? `${BASE_URL}${report.pdfUrl}` : null,
         status: report.status,
-        createdAt: report.createdAt
+        createdAt: report.createdAt,
+        reportUrl: `${BASE_URL}/api/patient/reports/${report._id}`
       }
     });
   } catch (err) {
