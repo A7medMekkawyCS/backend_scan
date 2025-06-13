@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
@@ -28,6 +29,8 @@ app.use(express.json());
 app.use(cors());
 app.use(helmet());
 app.use('/users', express.static('users')); 
+app.use('/reports', express.static(path.join(__dirname, 'public/reports')));
+
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
