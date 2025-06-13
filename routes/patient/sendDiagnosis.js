@@ -4,11 +4,19 @@ const Message = require('../../models/Message');
 const Report = require('../../models/Report');
 const { authenticateUser } = require('../../middleware/authMiddleware');
 const { authorizeRole } = require('../../middleware/authorizeRole');
+const path = require('path');
+const fs = require('fs');
 
 const router = express.Router();
 
 // Base URL for Railway deployment
 const BASE_URL = 'https://backendscan-production.up.railway.app';
+
+// Ensure reports directory exists
+const reportsDir = path.join(__dirname, '../../public/reports');
+if (!fs.existsSync(reportsDir)) {
+  fs.mkdirSync(reportsDir, { recursive: true });
+}
 
 // Send diagnosis to doctor
 router.post(
@@ -40,13 +48,31 @@ router.post(
 
       await message.save();
 
+      // Generate unique filename for the report
+      const reportFileName = `report_${message._id}_${Date.now()}.pdf`;
+      const reportFilePath = path.join(reportsDir, reportFileName);
+      const reportUrl = `${BASE_URL}/reports/${reportFileName}`;
+
+      // Save the report file
+      const reportContent = {
+        messageId: message._id,
+        diagnosisId: diagnosisId,
+        text: messageText,
+        createdAt: new Date(),
+        patientId: req.user._id,
+        doctorId: doctorId
+      };
+
+      fs.writeFileSync(reportFilePath, JSON.stringify(reportContent, null, 2));
+
       res.status(201).json({
         success: true,
         message: 'Diagnosis sent to doctor successfully',
         data: {
           ...message.toObject(),
           reportUrl: `${BASE_URL}/api/patient/reports/${message._id}`,
-          diagnosisUrl: `${BASE_URL}/api/patient/diagnosis/${diagnosisId}`
+          diagnosisUrl: `${BASE_URL}/api/patient/diagnosis/${diagnosisId}`,
+          reportFileUrl: reportUrl
         }
       });
     } catch (err) {
@@ -82,7 +108,8 @@ router.get('/reports', authenticateUser, authorizeRole(['patient']), async (req,
         pdfUrl: report.pdfUrl ? `${BASE_URL}${report.pdfUrl}` : null,
         status: report.status,
         createdAt: report.createdAt,
-        reportUrl: `${BASE_URL}/api/patient/reports/${report._id}`
+        reportUrl: `${BASE_URL}/api/patient/reports/${report._id}`,
+        reportFileUrl: `${BASE_URL}/reports/report_${report._id}_${Date.now()}.pdf`
       }))
     });
   } catch (err) {
@@ -122,7 +149,8 @@ router.get('/reports/:reportId', authenticateUser, authorizeRole(['patient']), a
         pdfUrl: report.pdfUrl ? `${BASE_URL}${report.pdfUrl}` : null,
         status: report.status,
         createdAt: report.createdAt,
-        reportUrl: `${BASE_URL}/api/patient/reports/${report._id}`
+        reportUrl: `${BASE_URL}/api/patient/reports/${report._id}`,
+        reportFileUrl: `${BASE_URL}/reports/report_${report._id}_${Date.now()}.pdf`
       }
     });
   } catch (err) {
