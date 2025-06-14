@@ -6,6 +6,8 @@ const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const helmet = require('helmet');
 const User = require('./models/User');
+
+// Import routes
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const doctorRoutes = require('./routes/doctorRoutes');
@@ -17,21 +19,22 @@ const paymentRoutes = require('./routes/patient/paymentRoutes');
 const doctorAppointments = require('./routes/doctor/doctorViewAppointments');
 const doctorPayments = require('./routes/doctor/doctorViewPayments');
 const doctorMessages = require('./routes/doctor/doctorViewMessages');
-
-
+const createPdfReport = require('./routes/doctor/createPdfReport');
+const viewReports = require('./routes/patient/viewReports');
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Middleware
 app.use(express.json());
 app.use(cors());
 app.use(helmet());
 app.use('/users', express.static('users')); 
 app.use('/reports', express.static(path.join(__dirname, 'public/reports')));
 
-
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/doctor', doctorRoutes);
@@ -43,7 +46,8 @@ app.use('/api/patient/payments', paymentRoutes);
 app.use('/api/doctor/appointments', doctorAppointments);
 app.use('/api/doctor/payments', doctorPayments);
 app.use('/api/doctor/messages', doctorMessages);
-
+app.use('/api/doctor', createPdfReport);
+app.use('/api/patient', viewReports);
 
 async function createAdmin() {
   try {
