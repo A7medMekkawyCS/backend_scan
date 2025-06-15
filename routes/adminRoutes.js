@@ -1,36 +1,84 @@
 const express = require('express');
 const User = require('../models/User');
+const Doctor = require('../models/Doctor');
 const { authenticateUser } = require('../middleware/authMiddleware');
 const { authorizeRole } = require('../middleware/authorizeRole');
 const router = express.Router();
 
-router.post('/approve-doctor/:userId', authenticateUser, authorizeRole(['admin']), async (req, res) => {
+// Get all pending doctor requests
+router.get('/pending-doctors', authenticateUser, authorizeRole(['admin']), async (req, res) => {
   try {
-    const { userId } = req.params;
-    const user = await User.findById(userId);
+    const doctors = await Doctor.find({ isApproved: false })
+      .populate('userId', 'fullName email');
+    
+    res.status(200).json(doctors);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch pending doctors', error: err.message });
+  }
+});
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+// Approve doctor request
+router.post('/approve-doctor/:doctorId', authenticateUser, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+    const doctor = await Doctor.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
     }
 
-    if (user.role !== 'doctor') {
-      return res.status(400).json({ message: 'User is not a doctor' });
+    doctor.isApproved = true;
+    await doctor.save();
+
+    // Update user role to doctor if not already
+    const user = await User.findById(doctor.userId);
+    if (user && user.role !== 'doctor') {
+      user.role = 'doctor';
+      await user.save();
     }
 
-    if (!user.medicalLicense) {
-      return res.status(400).json({ message: 'Medical license is required' });
-    }
-
-    if (!user.specialization) {
-      return res.status(400).json({ message: 'Specialization is required' });
-    }
-
-    user.verifiedAsDoctor = true;
-    await user.save();
-
-    res.status(200).json({ message: 'Doctor approved successfully', user });
+    res.status(200).json({ 
+      message: 'Doctor approved successfully',
+      doctor: {
+        id: doctor._id,
+        specialization: doctor.specialization,
+        medicalLicense: doctor.medicalLicense,
+        hospital: doctor.hospital,
+        isApproved: doctor.isApproved
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: 'Failed to approve doctor', error: err.message });
+  }
+});
+
+// Reject doctor request
+router.post('/reject-doctor/:doctorId', authenticateUser, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+    const doctor = await Doctor.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+
+    await Doctor.findByIdAndDelete(doctorId);
+
+    res.status(200).json({ message: 'Doctor request rejected successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to reject doctor', error: err.message });
+  }
+});
+
+// Get all approved doctors
+router.get('/approved-doctors', authenticateUser, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const doctors = await Doctor.find({ isApproved: true })
+      .populate('userId', 'fullName email');
+    
+    res.status(200).json(doctors);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch approved doctors', error: err.message });
   }
 });
 

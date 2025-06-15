@@ -20,9 +20,11 @@ router.post('/register', async (req, res) => {
 
     let doctorUserId = null;
     let patientUserId = null;
+    let userRole = role;
 
     if (role === 'doctor') {
-      doctorUserId = generateDoctorId(); 
+      doctorUserId = generateDoctorId();
+      userRole = 'pending_doctor'; // Set as pending_doctor initially
     } else if (role === 'patient') {
       patientUserId = generatePatientId();
     }
@@ -31,7 +33,7 @@ router.post('/register', async (req, res) => {
       fullName,
       email,
       password,
-      role,
+      role: userRole,
       mobilenumber,
       birthDate,
       doctorUserId: role === 'doctor' ? doctorUserId : undefined,
@@ -39,8 +41,10 @@ router.post('/register', async (req, res) => {
     });
 
     res.status(201).json({
-      message: 'User registered successfully',
-      token: generateToken(user._id),  
+      message: role === 'doctor' ? 
+        'Registration successful. Please wait for admin approval.' : 
+        'User registered successfully',
+      token: generateToken(user._id),
       user: {
         id: user._id,
         fullName: user.fullName,
@@ -65,9 +69,16 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // Check if user is a pending doctor
+    if (user.role === 'pending_doctor') {
+      return res.status(403).json({ 
+        message: 'Your account is pending admin approval. Please wait for approval to access the system.' 
+      });
+    }
+
     res.status(200).json({
       message: 'Login successful',
-      token: generateToken(user._id),  
+      token: generateToken(user._id),
       user: {
         id: user._id,
         fullName: user.fullName,

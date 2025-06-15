@@ -6,7 +6,11 @@ const userSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true, select: false },
-  role: { type: String, enum: ['patient', 'doctor', 'admin'], default: 'patient' },
+  role: { 
+    type: String, 
+    enum: ['patient', 'pending_doctor', 'doctor', 'admin'], 
+    default: 'patient' 
+  },
   userId: { type: Number, unique: true },  // تسلسلي
   mobilenumber: { type: String },
   birthDate: { type: Date },
@@ -15,7 +19,6 @@ const userSchema = new mongoose.Schema({
   doctorUserId: { type: String, unique: true, sparse: true },
   medicalLicense: { type: String },
   specialization: { type: String },
-  verifiedAsDoctor: { type: Boolean, default: false },
   isVerified: { type: Boolean, default: false }
 }, { timestamps: true });
 
