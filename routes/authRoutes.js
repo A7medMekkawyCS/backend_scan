@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const Doctor = require('../models/Doctor');
 const { generateToken, generateDoctorId, generatePatientId } = require('../utils/authUtils');
 
 const router = express.Router();
@@ -69,11 +70,27 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Check if user is a pending doctor
-    if (user.role === 'pending_doctor') {
-      return res.status(403).json({ 
-        message: 'Your account is pending admin approval. Please wait for approval to access the system.' 
-      });
+    // For doctors, check both User role and Doctor approval status
+    if (user.role === 'pending_doctor' || user.role === 'doctor') {
+      const doctor = await Doctor.findOne({ userId: user._id });
+      
+      if (!doctor) {
+        return res.status(403).json({ 
+          message: 'Doctor profile not found. Please contact support.' 
+        });
+      }
+
+      if (!doctor.isApproved) {
+        return res.status(403).json({ 
+          message: 'Your account is pending admin approval. Please wait for approval to access the system.' 
+        });
+      }
+
+      // If doctor is approved, ensure user role is set to 'doctor'
+      if (user.role !== 'doctor') {
+        user.role = 'doctor';
+        await user.save();
+      }
     }
 
     res.status(200).json({

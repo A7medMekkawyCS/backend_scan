@@ -19,9 +19,38 @@ router.post("/submit-medical-info", async (req, res) => {
       contactNumber
     } = req.body;
 
+    // Validate required fields
+    if (!userId || !specialization || !experience || !qualifications || !medicalLicense || !hospital || !contactNumber) {
+      return res.status(400).json({ 
+        message: "All fields are required",
+        requiredFields: {
+          userId: "User ID is required",
+          specialization: "Specialization is required",
+          experience: "Experience is required",
+          qualifications: "Qualifications are required",
+          medicalLicense: "Medical license is required",
+          hospital: "Hospital is required",
+          contactNumber: "Contact number is required"
+        }
+      });
+    }
+
+    // Check if user exists and is a doctor
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ 
+        message: "User not found. Please make sure you have registered first." 
+      });
+    }
+
+    if (user.role !== 'doctor' && user.role !== 'pending_doctor') {
+      return res.status(403).json({ 
+        message: "Only doctors can submit medical information" 
+      });
+    }
+
     // Check if doctor already has submitted information
     const existingDoctor = await Doctor.findOne({ userId });
-
     if (existingDoctor) {
       return res.status(400).json({ 
         message: "You have already submitted your medical information" 
@@ -54,7 +83,11 @@ router.post("/submit-medical-info", async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Error submitting medical info:", error);
+    res.status(500).json({ 
+      message: "Server error",
+      error: error.message 
+    });
   }
 });
 

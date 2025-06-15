@@ -27,27 +27,38 @@ router.post('/approve-doctor/:doctorId', authenticateUser, authorizeRole(['admin
       return res.status(404).json({ message: 'Doctor not found' });
     }
 
+    // Update doctor approval status
     doctor.isApproved = true;
     await doctor.save();
 
-    // Update user role to doctor if not already
+    // Update user role to doctor
     const user = await User.findById(doctor.userId);
-    if (user && user.role !== 'doctor') {
-      user.role = 'doctor';
-      await user.save();
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
+
+    // Update user role and save
+    user.role = 'doctor';
+    await user.save();
 
     res.status(200).json({ 
       message: 'Doctor approved successfully',
       doctor: {
         id: doctor._id,
+        userId: doctor.userId,
         specialization: doctor.specialization,
         medicalLicense: doctor.medicalLicense,
         hospital: doctor.hospital,
         isApproved: doctor.isApproved
+      },
+      user: {
+        id: user._id,
+        email: user.email,
+        role: user.role
       }
     });
   } catch (err) {
+    console.error('Error approving doctor:', err);
     res.status(500).json({ message: 'Failed to approve doctor', error: err.message });
   }
 });
