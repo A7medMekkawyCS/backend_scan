@@ -38,6 +38,51 @@ router.get('/doctors', async (req, res) => {
 });
 
 // اختيار دكتور معين
+router.post('/select-doctor/:doctorId', async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+    const { patientId } = req.body;
+
+    if (!patientId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Patient ID is required'
+      });
+    }
+
+    // البحث عن الدكتور المعتمد
+    const doctor = await Doctor.findOne({ 
+      _id: doctorId,
+      isApproved: true 
+    });
+
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Doctor not found or not approved'
+      });
+    }
+
+    // تحديث معلومات المريض مع الدكتور المختار
+    await User.findByIdAndUpdate(patientId, {
+      selectedDoctor: doctorId
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Doctor selected successfully',
+      doctorId: doctor._id
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to select doctor',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+});
+
+// عرض تفاصيل دكتور معين
 router.get('/doctors/:doctorId', async (req, res) => {
   try {
     const { doctorId } = req.params;

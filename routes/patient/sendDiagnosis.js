@@ -1,6 +1,7 @@
 const express = require('express');
 const Diagnosis = require('../../models/Diagnosis');
 const Message = require('../../models/Message');
+const User = require('../../models/User');
 const { authenticateUser } = require('../../middleware/authMiddleware');
 const { authorizeRole } = require('../../middleware/authorizeRole');
 
@@ -18,6 +19,14 @@ router.post(
         return res.status(400).json({
           success: false,
           message: 'doctorId, diagnosisId, and messageText are required',
+        });
+      }
+
+      const patient = await User.findById(req.user._id);
+      if (!patient.selectedDoctor || patient.selectedDoctor.toString() !== doctorId) {
+        return res.status(400).json({
+          success: false,
+          message: 'You can only send diagnoses to your selected doctor',
         });
       }
 

@@ -1,5 +1,6 @@
 const express = require('express');
 const Appointment = require('../../models/Appointment');
+const User = require('../../models/User');
 const { authenticateUser } = require('../../middleware/authMiddleware');
 const { authorizeRole } = require('../../middleware/authorizeRole');
 
@@ -20,12 +21,20 @@ router.post(
         });
       }
 
+      const patient = await User.findById(req.user._id);
+      if (!patient.selectedDoctor || patient.selectedDoctor.toString() !== doctorId) {
+        return res.status(400).json({
+          success: false,
+          message: 'You must select this doctor first before booking an appointment',
+        });
+      }
+
       const appointment = new Appointment({
         patientId: req.user._id,
         doctorId,
         date,
         time,
-        status: 'pending', 
+        status: 'pending',
       });
 
       await appointment.save();

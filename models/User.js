@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const Counter = require('./Counter');  // تأكد من وجود هذا النموذج
+const Counter = require('./Counter');  
 
 const userSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
     enum: ['patient', 'pending_doctor', 'doctor', 'admin'], 
     default: 'patient' 
   },
-  userId: { type: Number, unique: true },  // تسلسلي
+  userId: { type: Number, unique: true }, 
   mobilenumber: { type: String },
   birthDate: { type: Date },
   profileImage: { type: String, default: 'default.png' },

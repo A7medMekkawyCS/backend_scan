@@ -1,6 +1,7 @@
 const express = require('express');
 const Payment = require('../../models/Payment');
 const Appointment = require('../../models/Appointment');
+const User = require('../../models/User');
 const { authenticateUser } = require('../../middleware/authMiddleware'); 
 const { authorizeRole } = require('../../middleware/authorizeRole');
 
@@ -25,6 +26,14 @@ router.post('/pay',
         return res.status(404).json({
           success: false,
           message: 'Appointment not found',
+        });
+      }
+
+      const patient = await User.findById(req.user._id);
+      if (!patient.selectedDoctor || patient.selectedDoctor.toString() !== appointment.doctorId.toString()) {
+        return res.status(400).json({
+          success: false,
+          message: 'You can only make payments for appointments with your selected doctor',
         });
       }
 
