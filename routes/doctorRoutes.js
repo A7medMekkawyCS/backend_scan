@@ -6,6 +6,91 @@ const User = require("../models/User");
 
 const router = express.Router();
 
+// عرض بيانات الدكتور
+router.get("/profile", authenticateUser, authorizeRole(["doctor"]), async (req, res) => {
+  try {
+    const doctor = await Doctor.findOne({ userId: req.user._id })
+      .populate('userId', 'fullName email profileImage');
+
+    if (!doctor) {
+      return res.status(404).json({ 
+        message: "No medical information found" 
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      doctor: {
+        id: doctor._id,
+        fullName: doctor.userId.fullName,
+        email: doctor.userId.email,
+        profileImage: doctor.userId.profileImage,
+        specialization: doctor.specialization,
+        experience: doctor.experience,
+        qualifications: doctor.qualifications,
+        medicalLicense: doctor.medicalLicense,
+        hospital: doctor.hospital,
+        contactNumber: doctor.contactNumber,
+        isApproved: doctor.isApproved
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to fetch doctor profile",
+      error: error.message 
+    });
+  }
+});
+
+// تحديث بيانات الدكتور
+router.put("/profile", authenticateUser, authorizeRole(["doctor"]), async (req, res) => {
+  try {
+    const {
+      specialization,
+      experience,
+      qualifications,
+      hospital,
+      contactNumber
+    } = req.body;
+
+    const doctor = await Doctor.findOne({ userId: req.user._id });
+    if (!doctor) {
+      return res.status(404).json({ 
+        message: "No medical information found" 
+      });
+    }
+
+    // تحديث البيانات
+    if (specialization) doctor.specialization = specialization;
+    if (experience) doctor.experience = experience;
+    if (qualifications) doctor.qualifications = qualifications;
+    if (hospital) doctor.hospital = hospital;
+    if (contactNumber) doctor.contactNumber = contactNumber;
+
+    await doctor.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      doctor: {
+        id: doctor._id,
+        specialization: doctor.specialization,
+        experience: doctor.experience,
+        qualifications: doctor.qualifications,
+        hospital: doctor.hospital,
+        contactNumber: doctor.contactNumber
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to update profile",
+      error: error.message 
+    });
+  }
+});
+
 // Submit medical information
 router.post("/submit-medical-info", async (req, res) => {
   try {
