@@ -43,6 +43,85 @@ router.get("/profile", authenticateUser, authorizeRole(["doctor"]), async (req, 
   }
 });
 
+// موافقة الأدمن على الدكتور
+router.post("/approve/:doctorId", authenticateUser, authorizeRole(["admin"]), async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+
+    // البحث عن الدكتور
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor not found"
+      });
+    }
+
+    // تحديث حالة الموافقة
+    doctor.isApproved = true;
+    await doctor.save();
+
+    // تحديث دور المستخدم من pending_doctor إلى doctor
+    await User.findByIdAndUpdate(doctor.userId, {
+      role: 'doctor',
+      doctorUserId: doctor._id.toString() // تخزين معرف الدكتور في بيانات المستخدم
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Doctor approved successfully",
+      doctor: {
+        id: doctor._id,
+        userId: doctor.userId,
+        isApproved: doctor.isApproved
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to approve doctor",
+      error: error.message
+    });
+  }
+});
+
+// رفض موافقة الأدمن على الدكتور
+router.post("/reject/:doctorId", authenticateUser, authorizeRole(["admin"]), async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+    const { reason } = req.body;
+
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor not found"
+      });
+    }
+
+    // حذف الدكتور غير المعتمد
+    await Doctor.findByIdAndDelete(doctorId);
+
+    // إعادة دور المستخدم إلى pending_doctor
+    await User.findByIdAndUpdate(doctor.userId, {
+      role: 'pending_doctor',
+      doctorUserId: null
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Doctor rejected successfully",
+      reason: reason || "No reason provided"
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to reject doctor",
+      error: error.message
+    });
+  }
+});
+
 // تحديث بيانات الدكتور
 router.put("/profile", authenticateUser, authorizeRole(["doctor"]), async (req, res) => {
   try {

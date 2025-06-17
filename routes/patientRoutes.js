@@ -12,7 +12,8 @@ router.get('/doctors', async (req, res) => {
 
     // تنسيق البيانات للعرض
     const formattedDoctors = doctors.map(doctor => ({
-      id: doctor._id,
+      doctorId: doctor._id, // معرف الدكتور الفريد في جدول Doctor
+      userId: doctor.userId._id, // معرف المستخدم المرتبط بالدكتور
       fullName: doctor.userId.fullName,
       email: doctor.userId.email,
       profileImage: doctor.userId.profileImage,
@@ -40,7 +41,7 @@ router.get('/doctors', async (req, res) => {
 // اختيار دكتور معين
 router.post('/select-doctor/:doctorId', async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const { doctorId } = req.params; // هذا هو _id من جدول Doctor
     const { patientId } = req.body;
 
     if (!patientId) {
@@ -50,28 +51,47 @@ router.post('/select-doctor/:doctorId', async (req, res) => {
       });
     }
 
-    // البحث عن الدكتور المعتمد
+    // البحث عن الدكتور المعتمد فقط
     const doctor = await Doctor.findOne({ 
       _id: doctorId,
       isApproved: true 
-    });
+    }).populate('userId', 'fullName email profileImage');
 
     if (!doctor) {
       return res.status(404).json({
         success: false,
-        message: 'Doctor not found or not approved'
+        message: 'Doctor not found or not approved. You can only select approved doctors.'
       });
     }
 
-    // تحديث معلومات المريض مع الدكتور المختار
+    // التحقق من أن المستخدم مريض
+    const patient = await User.findById(patientId);
+    if (!patient || patient.role !== 'patient') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only patients can select doctors'
+      });
+    }
+
+    // تحديث معلومات المريض مع معرف الدكتور المختار
     await User.findByIdAndUpdate(patientId, {
-      selectedDoctor: doctorId
+      selectedDoctor: doctor._id
     });
 
+    // إرجاع معلومات الدكتور المختار
     res.status(200).json({
       success: true,
       message: 'Doctor selected successfully',
-      doctorId: doctor._id
+      selectedDoctor: {
+        doctorId: doctor._id,           // معرف الدكتور في جدول Doctor
+        userId: doctor.userId._id,      // معرف المستخدم المرتبط بالدكتور
+        fullName: doctor.userId.fullName,
+        email: doctor.userId.email,
+        profileImage: doctor.userId.profileImage,
+        specialization: doctor.specialization,
+        hospital: doctor.hospital,
+        contactNumber: doctor.contactNumber
+      }
     });
   } catch (err) {
     res.status(500).json({
@@ -85,11 +105,11 @@ router.post('/select-doctor/:doctorId', async (req, res) => {
 // عرض تفاصيل دكتور معين
 router.get('/doctors/:doctorId', async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const { doctorId } = req.params; // هذا هو _id من جدول Doctor
 
-    // البحث عن الدكتور المعتمد
+    // البحث عن الدكتور المعتمد فقط
     const doctor = await Doctor.findOne({ 
-      _id: doctorId,
+      _id: doctorId, // البحث باستخدام _id من جدول Doctor
       isApproved: true 
     }).populate('userId', 'fullName email profileImage');
 
@@ -102,7 +122,8 @@ router.get('/doctors/:doctorId', async (req, res) => {
 
     // تنسيق بيانات الدكتور
     const formattedDoctor = {
-      id: doctor._id,
+      doctorId: doctor._id, // معرف الدكتور في جدول Doctor
+      userId: doctor.userId._id, // معرف المستخدم المرتبط بالدكتور
       fullName: doctor.userId.fullName,
       email: doctor.userId.email,
       profileImage: doctor.userId.profileImage,
