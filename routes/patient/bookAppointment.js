@@ -25,21 +25,13 @@ router.post(
       if (!doctor) {
         return res.status(404).json({
           success: false,
-          message: 'Doctor not found or not approved',
-        });
-      }
-
-      const patient = await User.findById(req.user._id);
-      if (!patient.selectedDoctor || patient.selectedDoctor.toString() !== doctorId) {
-        return res.status(400).json({
-          success: false,
-          message: 'You must select this doctor first before booking an appointment',
+          message: 'Doctor not found',
         });
       }
 
       const appointment = new Appointment({
         patientId: req.user._id,
-        doctorId,
+        doctorId: doctor._id,
         date,
         time,
         status: 'pending',
