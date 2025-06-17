@@ -1,6 +1,7 @@
 const express = require('express');
 const Appointment = require('../../models/Appointment');
 const Payment = require('../../models/Payment');
+const Doctor = require('../../models/Doctor');
 const { authenticateUser } = require('../../middleware/authMiddleware');
 const { authorizeRole } = require('../../middleware/authorizeRole');
 
@@ -12,8 +13,17 @@ router.get(
   authorizeRole(['doctor']),
   async (req, res) => {
     try {
-      // أول حاجة نجيب كل المواعيد الخاصة بالدكتور
-      const appointments = await Appointment.find({ doctorId: req.user._id });
+      // أولاً نجيب معرف الدكتور من جدول Doctor
+      const doctor = await Doctor.findOne({ userId: req.user._id });
+      if (!doctor) {
+        return res.status(404).json({
+          success: false,
+          message: 'Doctor not found'
+        });
+      }
+
+      // نستخدم _id من جدول Doctor
+      const appointments = await Appointment.find({ doctorId: doctor._id });
       const appointmentIds = appointments.map(app => app._id);
 
       // بعدين نجيب كل المدفوعات الخاصة بيهم
