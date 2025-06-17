@@ -6,14 +6,19 @@ const router = express.Router();
 // عرض جميع الدكاترة المعتمدين
 router.get('/doctors', async (req, res) => {
   try {
-    // البحث عن الدكاترة المعتمدين فقط
-    const doctors = await Doctor.find({ isApproved: true })
-      .populate('userId', 'fullName email profileImage');
+    // البحث عن المستخدمين الذين لديهم دور دكتور
+    const doctors = await User.find({ role: 'doctor' })
+      .select('_id fullName email profileImage');
+
+    // البحث عن معلومات الدكاترة المعتمدين
+    const approvedDoctors = await Doctor.find({ 
+      isApproved: true,
+      userId: { $in: doctors.map(d => d._id) }
+    }).populate('userId', 'fullName email profileImage');
 
     // تنسيق البيانات للعرض
-    const formattedDoctors = doctors.map(doctor => ({
-      doctorId: doctor._id, // معرف الدكتور الفريد في جدول Doctor
-      userId: doctor.userId._id, // معرف المستخدم المرتبط بالدكتور
+    const formattedDoctors = approvedDoctors.map(doctor => ({
+      userId: doctor.userId._id, // معرف المستخدم الأصلي للدكتور
       fullName: doctor.userId.fullName,
       email: doctor.userId.email,
       profileImage: doctor.userId.profileImage,
@@ -39,9 +44,9 @@ router.get('/doctors', async (req, res) => {
 });
 
 // اختيار دكتور معين
-router.post('/select-doctor/:doctorId', async (req, res) => {
+router.post('/select-doctor/:userId', async (req, res) => {
   try {
-    const { doctorId } = req.params; // هذا هو _id من جدول Doctor
+    const { userId } = req.params; // هذا هو _id من جدول User
     const { patientId } = req.body;
 
     if (!patientId) {
@@ -51,9 +56,9 @@ router.post('/select-doctor/:doctorId', async (req, res) => {
       });
     }
 
-    // البحث عن الدكتور المعتمد فقط
+    // التحقق من أن المستخدم دكتور معتمد
     const doctor = await Doctor.findOne({ 
-      _id: doctorId,
+      userId: userId,
       isApproved: true 
     }).populate('userId', 'fullName email profileImage');
 
@@ -73,9 +78,9 @@ router.post('/select-doctor/:doctorId', async (req, res) => {
       });
     }
 
-    // تحديث معلومات المريض مع معرف الدكتور المختار
+    // تحديث معلومات المريض مع معرف المستخدم الأصلي للدكتور
     await User.findByIdAndUpdate(patientId, {
-      selectedDoctor: doctor._id
+      selectedDoctor: userId // تخزين معرف المستخدم الأصلي للدكتور
     });
 
     // إرجاع معلومات الدكتور المختار
@@ -83,8 +88,7 @@ router.post('/select-doctor/:doctorId', async (req, res) => {
       success: true,
       message: 'Doctor selected successfully',
       selectedDoctor: {
-        doctorId: doctor._id,           // معرف الدكتور في جدول Doctor
-        userId: doctor.userId._id,      // معرف المستخدم المرتبط بالدكتور
+        userId: doctor.userId._id,      // معرف المستخدم الأصلي للدكتور
         fullName: doctor.userId.fullName,
         email: doctor.userId.email,
         profileImage: doctor.userId.profileImage,
@@ -103,13 +107,13 @@ router.post('/select-doctor/:doctorId', async (req, res) => {
 });
 
 // عرض تفاصيل دكتور معين
-router.get('/doctors/:doctorId', async (req, res) => {
+router.get('/doctors/:userId', async (req, res) => {
   try {
-    const { doctorId } = req.params; // هذا هو _id من جدول Doctor
+    const { userId } = req.params; // هذا هو _id من جدول User
 
     // البحث عن الدكتور المعتمد فقط
     const doctor = await Doctor.findOne({ 
-      _id: doctorId, // البحث باستخدام _id من جدول Doctor
+      userId: userId,
       isApproved: true 
     }).populate('userId', 'fullName email profileImage');
 
@@ -122,8 +126,7 @@ router.get('/doctors/:doctorId', async (req, res) => {
 
     // تنسيق بيانات الدكتور
     const formattedDoctor = {
-      doctorId: doctor._id, // معرف الدكتور في جدول Doctor
-      userId: doctor.userId._id, // معرف المستخدم المرتبط بالدكتور
+      userId: doctor.userId._id, // معرف المستخدم الأصلي للدكتور
       fullName: doctor.userId.fullName,
       email: doctor.userId.email,
       profileImage: doctor.userId.profileImage,

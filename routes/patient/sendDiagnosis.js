@@ -22,13 +22,15 @@ router.post(
         });
       }
 
-      const patient = await User.findById(req.user._id);
-      if (!patient.selectedDoctor || patient.selectedDoctor.toString() !== doctorId) {
-        return res.status(400).json({
+      const doctor = await User.findOne({ _id: doctorId, role: 'doctor' });
+      if (!doctor) {
+        return res.status(404).json({
           success: false,
-          message: 'You can only send diagnoses to your selected doctor',
+          message: 'Doctor not found or not approved',
         });
       }
+
+     
 
       const diagnosis = await Diagnosis.findById(diagnosisId);
       if (!diagnosis) {

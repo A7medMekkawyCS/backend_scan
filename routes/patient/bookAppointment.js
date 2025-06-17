@@ -21,6 +21,14 @@ router.post(
         });
       }
 
+      const doctor = await User.findOne({ _id: doctorId, role: 'doctor' });
+      if (!doctor) {
+        return res.status(404).json({
+          success: false,
+          message: 'Doctor not found or not approved',
+        });
+      }
+
       const patient = await User.findById(req.user._id);
       if (!patient.selectedDoctor || patient.selectedDoctor.toString() !== doctorId) {
         return res.status(400).json({
